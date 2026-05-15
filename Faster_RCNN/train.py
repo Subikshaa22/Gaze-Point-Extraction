@@ -19,9 +19,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# =========================
-# DATASET
-# =========================
 class COCOHotspotDataset(Dataset):
     def __init__(self, image_dirs, annotation_paths):
         self.all_images = []
@@ -69,9 +66,6 @@ class COCOHotspotDataset(Dataset):
 
         return img, target
 
-# =========================
-# MODEL
-# =========================
 def get_model(num_classes=2):
     model = fasterrcnn_resnet50_fpn(pretrained=False)
     in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -81,9 +75,6 @@ def get_model(num_classes=2):
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-# =========================
-# METRICS
-# =========================
 def compute_iou(boxA, boxB):
     xA = max(boxA[0], boxB[0])
     yA = max(boxA[1], boxB[1])
@@ -131,9 +122,6 @@ def evaluate_metrics(model, data_loader, device):
 
     return mean_iou, mAP
 
-# =========================
-# TRAIN
-# =========================
 def train_one_epoch(model, optimizer, loader, device):
     model.train()
     total_loss = 0
@@ -153,9 +141,6 @@ def train_one_epoch(model, optimizer, loader, device):
 
     return total_loss / len(loader)
 
-# =========================
-# MAIN TRAIN LOOP
-# =========================
 def train_model(image_dirs, annotation_paths, epochs=25, batch_size=2):
     dataset = COCOHotspotDataset(image_dirs, annotation_paths)
 
@@ -187,16 +172,14 @@ def train_model(image_dirs, annotation_paths, epochs=25, batch_size=2):
 
     return model
 
-# =========================
-# ENTRY
-# =========================
+
 def main():
     image_dirs = [
         'frames'
     ]
 
     annotation_paths = [
-        'annotations_result3.json'
+        'annotations.json'
     ]
 
     train_model(image_dirs, annotation_paths, epochs=25)

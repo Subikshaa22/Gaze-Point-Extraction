@@ -5,14 +5,8 @@ import torch
 import numpy as np
 import torch.nn as nn
 
-# -------------------------------
-# DEVICE
-# -------------------------------
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# -------------------------------
-# MODEL
-# -------------------------------
 def conv_block(in_c, out_c):
     return nn.Sequential(
         nn.Conv2d(in_c, out_c, 3, padding=1),
@@ -81,9 +75,6 @@ class SiameseUNet(nn.Module):
 
         return self.final(x)
 
-# -------------------------------
-# MASK → BBOX
-# -------------------------------
 def get_bbox(mask, threshold=0.5):
 
     mask = (mask > threshold).astype(np.uint8)
@@ -95,23 +86,18 @@ def get_bbox(mask, threshold=0.5):
 
     return min(xs), min(ys), max(xs), max(ys)
 
-# -------------------------------
-# INFERENCE
-# -------------------------------
+
 def run():
 
     frames_dir = "frames"
-    output_dir = "siamese_outputs_metrics"
+    output_dir = "ouputs"
 
     os.makedirs(output_dir, exist_ok=True)
 
-    # -------------------------------
-    # LOAD MODEL
-    # -------------------------------
     model = SiameseUNet().to(DEVICE)
 
     model.load_state_dict(
-        torch.load("siamese_unet_metrics.pth", map_location=DEVICE)
+        torch.load("smodel.pth", map_location=DEVICE)
     )
 
     model.eval()
@@ -123,9 +109,6 @@ def run():
 
     overall_start = time.time()
 
-    # -------------------------------
-    # FRAME LOOP
-    # -------------------------------
     for i in range(len(files) - 1):
 
         f1 = cv2.imread(os.path.join(frames_dir, files[i]))
@@ -133,9 +116,6 @@ def run():
 
         orig = f2.copy()
 
-        # -------------------------------
-        # PREPROCESS
-        # -------------------------------
         img1 = cv2.resize(f1, (256, 256)) / 255.0
         img2 = cv2.resize(f2, (256, 256)) / 255.0
 
@@ -152,9 +132,6 @@ def run():
             dtype=torch.float32
         ).unsqueeze(0).to(DEVICE)
 
-        # -------------------------------
-        # INFERENCE TIMER
-        # -------------------------------
         if DEVICE == "cuda":
             torch.cuda.synchronize()
 
@@ -178,18 +155,12 @@ def run():
             f"Inference Time: {inference_time:.4f} sec"
         )
 
-        # -------------------------------
-        # POSTPROCESS
-        # -------------------------------
         pred = torch.sigmoid(pred)
 
         pred = pred[0][0].cpu().numpy()
 
         bbox = get_bbox(pred, threshold=0.5)
 
-        # -------------------------------
-        # DRAW BBOX
-        # -------------------------------
         if bbox:
 
             x1, y1, x2, y2 = bbox
@@ -210,17 +181,11 @@ def run():
                 3
             )
 
-        # -------------------------------
-        # SAVE OUTPUT
-        # -------------------------------
         cv2.imwrite(
             os.path.join(output_dir, files[i + 1]),
             orig
         )
 
-    # -------------------------------
-    # FINAL STATS
-    # -------------------------------
     overall_end = time.time()
 
     total_execution_time = overall_end - overall_start
@@ -229,16 +194,12 @@ def run():
 
     fps = 1 / avg_time
 
-    print("\n==============================")
     print(f"Total Frames Processed : {total_frames}")
     print(f"Average Inference Time : {avg_time:.4f} sec/frame")
-    print(f"Approx FPS             : {fps:.2f}")
     print(f"Complete Execution Time: {total_execution_time:.4f} sec")
-    print("==============================")
 
     print("Done!")
 
-# -------------------------------
 if __name__ == "__main__":
     run()
 

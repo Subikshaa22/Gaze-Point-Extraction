@@ -8,13 +8,9 @@ import torch.nn as nn
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-# =====================================
-# CONFIG
-# =====================================
-
 FRAMES_DIR = "frames"
-OUTPUT_DIR = "fasterrcnn_outputs"
-MODEL_PATH = "fasterrcnn_model.pth"
+OUTPUT_DIR = "outputs"
+MODEL_PATH = "model.pth"
 
 CONFIDENCE_THRESHOLD = 0.5
 
@@ -22,10 +18,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-# =====================================
-# MODEL
-# =====================================
 
 def get_model(num_classes=2):
 
@@ -41,10 +33,6 @@ def get_model(num_classes=2):
     return model
 
 
-# =====================================
-# LOAD MODEL
-# =====================================
-
 model = get_model()
 
 model.load_state_dict(
@@ -58,10 +46,6 @@ model.eval()
 print(f"Model loaded on {DEVICE}")
 
 
-# =====================================
-# INFERENCE
-# =====================================
-
 files = sorted(os.listdir(FRAMES_DIR))
 
 total_inference_time = 0
@@ -72,10 +56,6 @@ overall_start = time.time()
 for file_name in files:
 
     image_path = os.path.join(FRAMES_DIR, file_name)
-
-    # ---------------------------------
-    # READ IMAGE
-    # ---------------------------------
 
     image_bgr = cv2.imread(image_path)
 
@@ -95,9 +75,6 @@ for file_name in files:
 
     image = image.to(DEVICE)
 
-    # ---------------------------------
-    # INFERENCE TIMER
-    # ---------------------------------
 
     if DEVICE.type == "cuda":
         torch.cuda.synchronize()
@@ -118,18 +95,12 @@ for file_name in files:
     total_inference_time += inference_time
     total_images += 1
 
-    # ---------------------------------
-    # OUTPUTS
-    # ---------------------------------
 
     output = outputs[0]
 
     boxes = output["boxes"].cpu().numpy()
     scores = output["scores"].cpu().numpy()
 
-    # ---------------------------------
-    # DRAW BOXES
-    # ---------------------------------
 
     for box, score in zip(boxes, scores):
 
@@ -156,9 +127,6 @@ for file_name in files:
             2
         )
 
-    # ---------------------------------
-    # SAVE OUTPUT
-    # ---------------------------------
 
     save_path = os.path.join(OUTPUT_DIR, file_name)
 
@@ -169,9 +137,6 @@ for file_name in files:
         f"Inference Time: {inference_time:.4f} sec"
     )
 
-# =====================================
-# FINAL METRICS
-# =====================================
 
 overall_end = time.time()
 
@@ -181,11 +146,8 @@ avg_inference_time = total_inference_time / total_images
 
 fps = 1 / avg_inference_time
 
-print("\n===================================")
 print(f"Total Images Processed : {total_images}")
 print(f"Average Inference Time : {avg_inference_time:.4f} sec/image")
-print(f"Approx FPS             : {fps:.2f}")
 print(f"Total Execution Time   : {total_execution_time:.4f} sec")
-print("===================================")
 
 print(f"\nOutputs saved in: {OUTPUT_DIR}")
